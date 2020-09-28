@@ -1,0 +1,1 @@
+gcloud functions deploy FUNCTION_NAME --region=TARGET_REGION --source .
