@@ -4,7 +4,7 @@ from lib.sql_connection import insert
 
 def main(request):
     # TODO: get master data from DB
-    return insert(request)
+    return insert(request) # TODO: update after completing inprementation
 
     db_master_list: dict = {
         5000001: {
@@ -15,9 +15,9 @@ def main(request):
         5000003: "bbb"
     }
 
-    req_sys_id      = request.args.get('req_sys_id')
-    req_master_id   = request.args.get('req_master_id')
-    req_target_name = request.args.get('req_name')
+    req_sys_id      = request.args.get('sys_id')
+    req_master_id   = request.args.get('sys_master_id')
+    req_target_name = request.args.get('target_name')
 
     res_master_id     = 0
     res_unique_name   = ''
@@ -52,10 +52,3 @@ def main(request):
     }
 
     return json.dumps(res_json, indent=4)
-
-# TODO: ...
-def checkIsExistMasterName(request):
-    request_json = request.get_json()
-
-if __name__ == "__main__":
-    main({ "req_sys_id": 10001, "req_master_id": 5000001, "req_target_name": "博報堂DYメディアパートナーズ" })
