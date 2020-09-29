@@ -1,7 +1,6 @@
 import os
 import datetime
 
-from flask import Request
 import sqlalchemy
 from sqlalchemy import Table, Column, MetaData, Integer, String, Boolean, DateTime, Sequence, create_engine
 from sqlalchemy.dialects.postgresql import insert
@@ -40,16 +39,16 @@ CorpInfoMaster = Table('corp_info_master', metadata,
     Column('updated_at', DateTime, onupdate=datetime.datetime.now),
     Column('deleted_at', DateTime, onupdate=datetime.datetime.now))
 
-def build_query(type: str, req: Request):
+def build_query(type: str, _req):
     if (type == 'INSERT'):
         return CorpInfoMaster.insert().values(
-            sys_id=req.sys_id,
-            sys_master_id=req.sys_master_id,
-            unique_name=req.unique_name)
+            sys_id=_req.args.get('sys_id'),
+            sys_master_id=_req.args.get('sys_master_id'),
+            unique_name=_req.args.get('unique_name'))
     else:
         return None
 
-def insert(engine, req: Request):
+def insert(req):
     # stmt = sqlalchemy.text('INSERT INTO public.corp_info_master (sys_id, sys_master_id, unique_name) VALUES (10001, 2000002, デジタルアドバタイジングコンソーシアム株式会社)')
     stmt = build_query('INSERT', req)
 
