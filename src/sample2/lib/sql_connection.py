@@ -3,7 +3,7 @@ import datetime
 
 import sqlalchemy
 from sqlalchemy import Table, Column, MetaData, Integer, String, Boolean, DateTime, Sequence, create_engine
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.sql import and_
 
 # Set the following variables depending on your specific
 # connection name and root password from the earlier steps:
@@ -29,7 +29,7 @@ engine = create_engine(
 
 metadata  = MetaData()
 
-CorpInfoMaster = Table('corp_info_master', metadata,
+corpInfoMaster = Table('corp_info_master', metadata,
     Column('id', Integer, Sequence('corp_info_master_id_seq'), primary_key=True),
     Column('sys_id', Integer),
     Column('sys_master_id', Integer),
@@ -41,10 +41,15 @@ CorpInfoMaster = Table('corp_info_master', metadata,
 
 def build_query(type: str, _req):
     if (type == 'INSERT'):
-        return CorpInfoMaster.insert().values(
+        return corpInfoMaster.insert().values(
             sys_id=_req.args.get('sys_id'),
             sys_master_id=_req.args.get('sys_master_id'),
-            unique_name=_req.args.get('unique_name'))
+            # unique_name=_req.args.get('unique_name'))
+            unique_name='***株式会社')
+    elif (type == 'SELECT'):
+        return corpInfoMaster.select().where(and_(
+            corpInfoMaster.c.sys_id == _req['sys_id'],
+            corpInfoMaster.c.sys_master_id == _req['sys_master_id']))
     else:
         return None
 
@@ -58,4 +63,14 @@ def insert(req):
                 conn.execute(stmt)
         except Exception as e:
             return 'Error: {}'.format(str(e))
-        return 'exit...'
+        return 'insert success!'
+
+def select(req):
+    stmt = build_query('SELECT', req)
+
+    if (stmt != None):
+        try:
+            with engine.connect() as conn:
+                return conn.execute(stmt)
+        except Exception as e:
+            return 'Error: {}'.format(str(e))

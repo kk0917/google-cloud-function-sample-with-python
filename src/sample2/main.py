@@ -1,23 +1,25 @@
 import json
 
-from lib.sql_connection import insert
+from lib.sql_connection import insert, select
 
 def main(request):
-    # TODO: get master data from DB
-    return insert(request) # TODO: update after completing inprementation
-
-    db_master_list: dict = {
-        5000001: {
-            "master_id": 11111111,
-            "name": "株式会社博報堂ＤＹメディアパートナーズ"
-        },
-        5000002: "aaa",
-        5000003: "bbb"
+    req_params = {
+        "sys_id": request.args.get('sys_id'),
+        "sys_master_id": request.args.get('sys_master_id'),
+        "target_name": request.args.get('target_name')
     }
+    # return json.dumps(req_params, indent=4)
 
-    req_sys_id      = request.args.get('sys_id')
-    req_master_id   = request.args.get('sys_master_id')
-    req_target_name = request.args.get('target_name')
+    # TODO: select master data from DB
+    resp  = select(req_params)
+
+    return convert_to_json(resp)
+
+    # return insert(request) # TODO: update after completing inprementation
+
+    # TODO: get master data from DB and check it if exists
+
+    # TODO: check flow
 
     res_master_id     = 0
     res_unique_name   = ''
@@ -52,3 +54,15 @@ def main(request):
     }
 
     return json.dumps(res_json, indent=4)
+
+def convert_to_json(resp):
+    dicts = {}
+    for i, row in enumerate(resp):
+        _dict = {
+            "id":          row.id,
+            "unique_name": row.unique_name
+        }
+
+        dicts.setdefault(i, _dict)
+
+    return dicts
