@@ -29,6 +29,7 @@ engine = create_engine(
 
 metadata  = MetaData()
 
+# TODO: Replace to models/CorpInfoMaster.py
 corpInfoMaster = Table('corp_info_master', metadata,
     Column('id', Integer, Sequence('corp_info_master_id_seq'), primary_key=True),
     Column('sys_id', Integer),
@@ -38,6 +39,23 @@ corpInfoMaster = Table('corp_info_master', metadata,
     Column('created_at', DateTime, onupdate=datetime.datetime.now),
     Column('updated_at', DateTime, onupdate=datetime.datetime.now),
     Column('deleted_at', DateTime, onupdate=datetime.datetime.now))
+
+def insert(req):
+    # stmt = sqlalchemy.text('INSERT INTO public.corp_info_master (sys_id, sys_master_id, unique_name) VALUES (10001, 2000002, デジタルアドバタイジングコンソーシアム株式会社)')
+    stmt = build_query('INSERT', req)
+
+    if (stmt != None):
+        return connect(stmt)
+    else:
+        return 'faild build query...'
+
+def select(req):
+    stmt = build_query('SELECT', req)
+
+    if (stmt != None):
+        return connect(stmt)
+    else:
+        return None
 
 def build_query(type: str, _req):
     if (type == 'INSERT'):
@@ -53,24 +71,9 @@ def build_query(type: str, _req):
     else:
         return None
 
-def insert(req):
-    # stmt = sqlalchemy.text('INSERT INTO public.corp_info_master (sys_id, sys_master_id, unique_name) VALUES (10001, 2000002, デジタルアドバタイジングコンソーシアム株式会社)')
-    stmt = build_query('INSERT', req)
-
-    if (stmt != None):
-        try:
-            with engine.connect() as conn:
-                conn.execute(stmt)
-        except Exception as e:
-            return 'Error: {}'.format(str(e))
-        return 'insert success!'
-
-def select(req):
-    stmt = build_query('SELECT', req)
-
-    if (stmt != None):
-        try:
-            with engine.connect() as conn:
-                return conn.execute(stmt)
-        except Exception as e:
-            return 'Error: {}'.format(str(e))
+def connect(stmt):
+    try:
+        with engine.connect() as conn:
+            return conn.execute(stmt)
+    except Exception as e:
+        return 'Error: {}'.format(str(e))
