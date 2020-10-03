@@ -12,14 +12,14 @@ def main(request):
     resp       = getMasterData(req_params)
 
     if resp != None:
-        return convert_data2json('master_db', resp)
+        return convert_resp2json('master_db', resp)
     else:
         result  = identify_company_name(req_params['target_name'])
         to_json = ''
 
         # ...
 
-        return convert_data2json('bigquery', to_json)
+        return convert_resp2json('bigquery', to_json)
 
 def setRequestParams(request):
     return {
@@ -31,23 +31,26 @@ def setRequestParams(request):
 def getMasterData(req_params):
     return select(req_params)
 
-def convert_data2json(reference, resp):
-    dicts = {}
+def convert_resp2json(reference, resp):
+    resp_dict = {}
 
     if reference == 'master_db':
-        for i, row in enumerate(resp):
+        # TODO: output error message if duplicate row exists
+        for row in resp:
             _dict = {
                 "id":          row.id,
                 "unique_name": row.unique_name
             }
 
-            dicts.setdefault(i, _dict)
+            resp_dict.update(_dict)
     elif reference == 'bigquery':
-        print('aaa') # TODO:
+        resp_dict.update({"error": "bigquery doesn\'t exists..."}) # ...TODO:
     else:
-        dicts = {"message": "Unknown reference"}
+        resp_dict.update({"error": "Unknown reference"})
 
-    return json.dumps(dicts, indent=4)
+    # TODO: investigate why dict type return json type even though converting json
+    # return json.dumps(resp_dict, ensure_ascii=False, indent=4)
+    return resp_dict
 
 def identify_company_name(target_name):
     fmt_name_str = fmt_string(target_name)
@@ -61,8 +64,8 @@ def fmt_string(target_name): # TODO: fix inappropriate variables name
     return _fmt_name_str
 
 def eval_company_name(fmt_name_str):
-    company_names_dic   = get_company_names_dic()
-    name_list = company_names_dic
+    company_names_dic  = get_company_names_dic()
+    name_list          = company_names_dic
 
     # ...
 
