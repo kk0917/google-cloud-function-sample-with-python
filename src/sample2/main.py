@@ -1,7 +1,9 @@
 import json
 import os
+import re
+import unicodedata
 
-from lib.sql_connection import insert, select
+from lib.db_connection import insert, select
 from google.cloud import bigquery
 
 DATASET_ID = os.environ['BIGQUERY_DATASET_ID']
@@ -9,16 +11,30 @@ TABLE_ID   = os.environ['BIGQUERY_TABLE_ID']
 
 def main(request):
     req_params = setRequestParams(request)
-    resp       = getMasterData(req_params)
+    result     = fetchMasterData(req_params) # ResultProxy obj
+    resp       = result.fetchall()         # list obj
 
-    if resp != None:
+    if 2 > len(resp) > 0:
         return convert_resp2json('master_db', resp)
+    # elif len(resp) > 1:
+    #     return json.dumps({"error": "duplicate data Exists..."}, indent=4)
     else:
-        result  = identify_company_name(req_params['target_name'])
+        dic = get_company_names_dic(request.args.get['target_name'])
+        return str(dic.total_count)
+        for row in dic:
+            return "{}".format(row['string_field_0'])
+        # return identify_company_name(req_params['target_name'])
+
         to_json = ''
 
-        # ...
-
+        if len(result) == 1: # TODO: [and len(result) > 1:]?
+            to_json = result
+            insert(req_params.sys_id, req_params.sys_master_id, result.unique_name) # TODO: update
+        elif len(result) > 1: # TODO: enable marge with if?
+            to_json = result
+        else:
+            to_json = {"message": "couldn't find..."}
+        
         return convert_resp2json('bigquery', to_json)
 
 def setRequestParams(request):
@@ -28,7 +44,7 @@ def setRequestParams(request):
         "target_name": request.args.get('target_name')
     }
 
-def getMasterData(req_params):
+def fetchMasterData(req_params):
     return select(req_params)
 
 def convert_resp2json(reference, resp):
@@ -38,8 +54,8 @@ def convert_resp2json(reference, resp):
         # TODO: output error message if duplicate row exists
         for row in resp:
             _dict = {
-                "id":          row.id,
-                "unique_name": row.unique_name
+                "id":          row['id'],
+                "unique_name": row['unique_name']
             }
 
             resp_dict.update(_dict)
@@ -61,19 +77,18 @@ def fmt_string(target_name): # TODO: fix inappropriate variables name
 
     # ...
 
-    return _fmt_name_str
+    return True
 
 def eval_company_name(fmt_name_str):
     company_names_dic  = get_company_names_dic()
-    name_list          = company_names_dic
 
     # ...
 
-    return name_list
+    return True
 
 def get_company_names_dic():
     client    = bigquery.Client()
-    query_job = client.query('SELECT string_field_0 FROM `dac-techdev0:jcl_dic.jcl_dic`')
+    query_job = client.query('SELECT `column_name` FROM `project_name.dataset_name.table_name`')
 
     results = query_job.result()  # Waits for job to complete.
 
