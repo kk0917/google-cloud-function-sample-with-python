@@ -11,8 +11,7 @@ TABLE_ID   = os.environ['BIGQUERY_TABLE_ID']
 
 def main(request):
     req_params = setRequestParams(request)
-    result     = fetchMasterData(req_params) # ResultProxy obj
-    resp       = result.fetchall()           # list obj
+    resp       = fetchMasterData(req_params)
 
     if 2 > len(resp) > 0:
         return convert_resp2json('master_db', resp)
@@ -44,7 +43,9 @@ def setRequestParams(request):
     }
 
 def fetchMasterData(req_params):
-    return select(req_params)
+    result = select(req_params)
+
+    return result.fetchall() # convert ResultProxy obj to list obj
 
 def convert_resp2json(reference, resp):
     resp_dict = {}
@@ -68,7 +69,7 @@ def convert_resp2json(reference, resp):
     else:
         resp_dict.update({"error": "Unknown reference"})
 
-    # return insert(request) # TODO: update after completing inprementation
+    return resp_dict
 
 def identify_company_name(target_name):
     fmt_name_str = fmt_string(target_name)
@@ -82,9 +83,21 @@ def fmt_string(target_name): # TODO: fix inappropriate variables name
 def eval_company_name(fmt_name_str):
     fetchOne = ''
 
-    # ...
+    if result == '': result = None
+    """aaa"""
 
     return fetchOne
+
+    """ TODO: Add registration status
+        ex. {
+            ...,
+            "status": {
+                0: "initial regist",
+                1: "already registed",
+                2: "updated after last time"
+            }
+        }
+    """
 
 def get_company_names_dic(target_name):
     client    = bigquery.Client()
