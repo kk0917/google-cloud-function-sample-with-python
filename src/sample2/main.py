@@ -10,59 +10,68 @@ DATASET_ID = os.environ['BIGQUERY_DATASET_ID']
 TABLE_ID   = os.environ['BIGQUERY_TABLE_ID']
 
 def main(request):
-    req_params = setRequestParams(request)
-    resp       = fetchMasterData(req_params)
+    req_params = set_request_params(request)
+    resp       = fetch_master_data(req_params)
 
-    if 2 > len(resp) > 0:
-        return convert_resp2json('master_db', resp)
-    # elif len(resp) > 1:
-    #     return json.dumps({"error": "duplicate data Exists..."}, indent=4)
+    if len(resp) == 1:
+        result = convert_resp2json('master_db', resp)
+    elif len(resp) > 1:
+        result = convert_resp2json('duplicated_names', resp)
     else:
-        bq_result = get_company_names_dic(req_params['target_name'])
-        for row in bq_result:
-            return str(row)
-        # return identify_company_name(req_params['target_name'])
+        identified_names = identify_company_name(req_params['target_name'])
+        required_values = extract_required_values(identified_names, req_params)
 
-        to_json = ''
+        result = convert_resp2json('_bigquery', required_values)
 
-        if len(result) == 1: # TODO: [and len(result) > 1:]?
-            to_json = result
-            insert(req_params.sys_id, req_params.sys_master_id, result.unique_name) # TODO: update
-        elif len(result) > 1: # TODO: enable marge with if?
-            to_json = result
-        else:
-            to_json = {"message": "couldn't find..."}
-        
-        return convert_resp2json('_bigquery', to_json)
+    return result
 
-def setRequestParams(request):
+def set_request_params(request):
     return {
         "sys_id": request.args.get('sys_id'),
         "sys_master_id": request.args.get('sys_master_id'),
         "target_name": request.args.get('target_name')
     }
 
-def fetchMasterData(req_params):
+def fetch_master_data(req_params):
     result = select(req_params)
 
-    return result.fetchall() # convert ResultProxy obj to list obj
+    return result.fetchall() # convert SQLAlchemy.ResultProxy obj to list obj
 
 def convert_resp2json(reference, resp):
-    resp_dict = {}
+    row_status = None
+    resp_dict  = {}
 
     if reference == 'master_db':
         # TODO: output error message if duplicate row exists
         for row in resp:
+            row_status = verify_row_status(row)
+
             _dict = {
                 "id":          row['id'],
-                "unique_name": row['unique_name']
+                "unique_name": row['unique_name'],
+                "status":      row_status
+            }
+
+            resp_dict.update(_dict)
+    elif reference == 'duplicated_names':
+        for i, row in enumerate(resp):
+            row_status = verify_row_status(row)
+
+            _dict = {
+                i: {
+                    "id":          row['id'],
+                    "unique_name": row['unique_name'],
+                    "status":      row_status
+                }
             }
 
             resp_dict.update(_dict)
     elif reference == '_bigquery':
-        for row in resp:
+        for i, row in enumerate(resp):
             _dict = {
-                "string_field_0": row.string_field_0
+                i: {
+                    "string_field_0": row.string_field_0
+                }
             }
 
             resp_dict.update(_dict)
@@ -71,9 +80,40 @@ def convert_resp2json(reference, resp):
 
     return resp_dict
 
+def verify_row_status(_row):
+    status = {
+        0: "initial regist",
+        1: "registed",
+        2: "updated"
+    }
+
+    result = None
+
+    if _row['created_at'] == _row['updated_at']:
+        result = status[1]
+    elif _row['created_at'] < _row['updated_at']:
+        result = status[2]
+
+    return result
+
 def identify_company_name(target_name):
     fmt_name_str = fmt_string(target_name)
     return eval_company_name(fmt_name_str)
+
+def extract_required_values(_identified_names, _req_params):
+    total_rows = _identified_names.total_rows
+    to_json = ''
+
+    if total_rows == 1:
+        to_json = _identified_names
+
+        insert(_req_params['sys_id'], _req_params['sys_master_id'], _identified_names['unique_name'])
+    elif total_rows > 1:
+        to_json = _identified_names
+    else:
+        to_json = {"message": "couldn't find..."}
+    
+    return to_json
 
 def fmt_string(target_name): # TODO: fix inappropriate variables name
     _fmt_name_str = 'aaa'
