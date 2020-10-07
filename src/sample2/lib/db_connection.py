@@ -30,7 +30,7 @@ engine = create_engine(
 metadata  = MetaData()
 
 # TODO: Replace to models/CorpInfoMaster.py
-corpInfoMaster = Table('corp_info_master', metadata,
+corp_info_master = Table('corp_info_master', metadata,
     Column('id', Integer, Sequence('corp_info_master_id_seq'), primary_key=True),
     Column('sys_id', Integer),
     Column('sys_master_id', Integer),
@@ -59,15 +59,16 @@ def select(req):
 
 def build_query(type: str, _req):
     if (type == 'INSERT'):
-        return corpInfoMaster.insert().values(
+        return corp_info_master.insert().values(
             sys_id=_req.args.get('sys_id'),
             sys_master_id=_req.args.get('sys_master_id'),
             # unique_name=_req.args.get('unique_name'))
             unique_name='***株式会社')
     elif (type == 'SELECT'):
-        return corpInfoMaster.select().where(and_(
-            corpInfoMaster.c.sys_id == _req['sys_id'],
-            corpInfoMaster.c.sys_master_id == _req['sys_master_id']))
+        return corp_info_master.select().where(and_(
+            corp_info_master.c.sys_id        == _req['sys_id'],
+            corp_info_master.c.sys_master_id == _req['sys_master_id'],
+            corp_info_master.c.is_deleted    != True))
     else:
         return None
 
