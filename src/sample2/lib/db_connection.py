@@ -19,17 +19,17 @@ driver_name     = 'postgres+pg8000'
 query_string    = dict({"unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(connection_name)})
 
 engine = create_engine(
-        sqlalchemy.engine.url.URL(
-            drivername=driver_name,
-            username=db_user,
-            password=db_password,
-            database=db_name,
-            query=query_string,
-        ),
-        pool_size=5,
-        max_overflow=2,
-        pool_timeout=30,
-        pool_recycle=1800)
+    sqlalchemy.engine.url.URL(
+        drivername=driver_name,
+        username=db_user,
+        password=db_password,
+        database=db_name,
+        query=query_string,
+    ),
+    pool_size=5,
+    max_overflow=2,
+    pool_timeout=30,
+    pool_recycle=1800)
 
 metadata  = MetaData()
 
@@ -44,14 +44,14 @@ corp_info_master = Table('corp_info_master', metadata,
     Column('updated_at', DateTime, onupdate=datetime.datetime.now),
     Column('deleted_at', DateTime, onupdate=datetime.datetime.now))
 
-def insert(req):
+def insert(req_params, identified_name):
     # stmt = sqlalchemy.text('INSERT INTO public.corp_info_master (sys_id, sys_master_id, unique_name) VALUES (10001, 2000002, デジタルアドバタイジングコンソーシアム株式会社)')
-    stmt = build_query('INSERT', req)
+    stmt = build_query('INSERT', req_params, identified_name)
 
     if (stmt != None):
         return connect(stmt)
     else:
-        return 'faild build query...'
+        return None
 
 def select(req):
     stmt = build_query('SELECT', req)
@@ -61,17 +61,16 @@ def select(req):
     else:
         return None
 
-def build_query(type: str, _req):
+def build_query(type: str, _req_params, _identified_name=None):
     if (type == 'INSERT'):
         return corp_info_master.insert().values(
-            sys_id=_req.args.get('sys_id'),
-            sys_master_id=_req.args.get('sys_master_id'),
-            # unique_name=_req.args.get('unique_name'))
-            unique_name='***株式会社')
+            sys_id        = _req_params['sys_id'],
+            sys_master_id = _req_params['sys_master_id'],
+            unique_name   = _identified_name)
     elif (type == 'SELECT'):
         return corp_info_master.select().where(and_(
-            corp_info_master.c.sys_id        == _req['sys_id'],
-            corp_info_master.c.sys_master_id == _req['sys_master_id'],
+            corp_info_master.c.sys_id        == _req_params['sys_id'],
+            corp_info_master.c.sys_master_id == _req_params['sys_master_id'],
             corp_info_master.c.is_deleted    != True))
     else:
         return None
