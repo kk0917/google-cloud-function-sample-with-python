@@ -4,6 +4,10 @@ import datetime
 import sqlalchemy
 from sqlalchemy import Table, Column, MetaData, Integer, String, Boolean, DateTime, Sequence, create_engine
 from sqlalchemy.sql import and_
+from google.cloud import bigquery
+
+DATASET_ID = os.environ['BIGQUERY_DATASET_ID']
+TABLE_ID   = os.environ['BIGQUERY_TABLE_ID']
 
 # Set the following variables depending on your specific
 # connection name and root password from the earlier steps:
@@ -78,3 +82,10 @@ def connect(stmt):
             return conn.execute(stmt)
     except Exception as e:
         return 'Error: {}'.format(str(e))
+
+def fetch_company_name_dic_bq(target_name):
+    client    = bigquery.Client()
+    query_job = client.query('SELECT string_field_0 FROM `dac-techdev0.jcl_dic.jcl_dic` WHERE string_field_0 IN ("{}") OR string_field_0 LIKE ("%{}%")'.format(target_name, target_name))
+    # query_job = client.query('SELECT string_field_0 FROM `dac-techdev0.jcl_dic.jcl_dic`')
+
+    return query_job.result()
