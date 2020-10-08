@@ -84,7 +84,6 @@ def connect(stmt):
 
 def fetch_company_name_dic_bq(target_name):
     client    = bigquery.Client()
-    query_job = client.query('SELECT string_field_0 FROM `dac-techdev0.jcl_dic.jcl_dic` WHERE string_field_0 IN ("{}") OR string_field_0 LIKE ("%{}%")'.format(target_name, target_name))
-    # query_job = client.query('SELECT string_field_0 FROM `dac-techdev0.jcl_dic.jcl_dic`')
+    query_job = client.query('SELECT string_field_0 FROM `dac-techdev0.{}.{}` WHERE string_field_0 IN ("{}") OR string_field_0 LIKE ("%{}%")'.format(DATASET_ID, TABLE_ID, target_name, target_name))
 
     return query_job.result()
