@@ -4,20 +4,30 @@ import unicodedata
 from lib.db_connection import insert, select, fetch_company_name_dic_bq
 
 def main(request):
-    req_params = set_request_params(request)
-    resp       = fetch_master_data(req_params)
-    result     = {"no matched": "names couldn't find..."}
+    # TODO: add Request Error -> JSON Type? all parameters?
+    content_type = request.headers['content-type']
+
+    if request.headers['content-type'] == 'application/json':
+        req_params = request.get_json(silent=True)
+        return req_params
+
+        if req_params:# and 'sys_id' in req_params: # ('sys_id', 'sys_master_id', 'target_name')
+            resp = fetch_master_data(req_params)
+        else:
+            raise ValueError("JSON is invalid, or missing 'sys_id', 'sys_master_id', 'target_name' properties")
+    else:
+        raise ValueError("Unknown content type: {}".format(content_type))
 
     if len(resp) == 1:
-        result = convert_resp2json('master_db', resp)
+        result = generate_json_resp('master_db', resp)
     elif len(resp) > 1:
-        result = convert_resp2json('duplicated_names', resp)
+        result = generate_json_resp('duplicated_names', resp)
     else:
         identified_names = identify_company_name(req_params['target_name'])
-        result          = convert_resp2json('_bigquery', identified_names)
+        result           = generate_json_resp('_bigquery', identified_names)
 
-        if len(identified_names) == 1:
-            insert(req_params, identified_names[0])
+        # if len(identified_names) == 1:
+        #     return insert(req_params, identified_names[0])
 
     return result
 
