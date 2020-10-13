@@ -1,22 +1,23 @@
 import re
 import unicodedata
 
+from flask import Response
+
 from lib.db_connection import insert, select, fetch_company_name_dic_bq
 
 def main(request):
     # TODO: add Request Error -> JSON Type? all parameters?
     content_type = request.headers['content-type']
 
-    if request.headers['content-type'] == 'application/json':
-        req_params = request.get_json(silent=True)
-        return req_params
+    if content_type == 'application/json': # TODO: If you change the HTTP method to POST you need to update the headers and parameters values
+        req_params = set_request_params(request)
 
-        if req_params:# and 'sys_id' in req_params: # ('sys_id', 'sys_master_id', 'target_name')
+        if 'sys_id' in request.args and 'sys_master_id' in request.args and 'target_name' in request.args:
             resp = fetch_master_data(req_params)
         else:
-            raise ValueError("JSON is invalid, or missing 'sys_id', 'sys_master_id', 'target_name' properties")
+            return Response("Bad Request: JSON is invalid, or missing 'sys_id', 'sys_master_id', 'target_name' properties", 400)
     else:
-        raise ValueError("Unknown content type: {}".format(content_type))
+        return Response("Bad Request: Unknown content type: {}".format(content_type), 400)
 
     if len(resp) == 1:
         result = generate_json_resp('master_db', resp)
@@ -43,7 +44,7 @@ def fetch_master_data(req_params):
 
     return result.fetchall() # convert SQLAlchemy.ResultProxy obj to list obj
 
-def convert_resp2json(reference, resp):
+def generate_json_resp(reference, resp):
     row_status = None
     resp_dict  = {}
 
