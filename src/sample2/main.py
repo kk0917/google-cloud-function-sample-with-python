@@ -22,7 +22,7 @@ def main(request):
     if len(resp) == 1:
         result = generate_json_resp('master_db', resp)
     elif len(resp) > 1:
-        result = generate_json_resp('duplicated_names', resp)
+        return Response("Error: duplicate row. Please contact techDev0", 500)
     else:
         identified_names = identify_company_name(req_params['target_name'])
         result           = generate_json_resp('_bigquery', identified_names)
@@ -59,21 +59,7 @@ def generate_json_resp(reference, resp):
             }
 
             resp_dict.update(_dict)
-    elif reference == 'duplicated_names':
-        resp_dict.update({"error": 'Duplicated master datas...'})
 
-        for i, row in enumerate(resp):
-            row_status = verify_row_status(row)
-
-            _dict = {
-                i: {
-                    "id":          row['id'],
-                    "unique_name": row['unique_name'],
-                    "status":      row_status
-                }
-            }
-
-            resp_dict.update(_dict)
     elif reference == '_bigquery':
         resp_dict.update(resp)
 
