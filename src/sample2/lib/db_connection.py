@@ -6,24 +6,27 @@ from sqlalchemy import Table, Column, MetaData, Integer, String, Boolean, DateTi
 from sqlalchemy.sql import and_
 from google.cloud import bigquery
 
+# Set the following variables depending on your specific
+# connection name and root password from the earlier steps:
+CONNECTION_NAME  = os.environ["CLOUD_SQL_CONNECTION_NAME"]
+DB_USER          = os.environ['DB_USER']
+DB_USER_PASSWORD = os.environ['DB_USER_PASSWORD']
+DB_NAME          = os.environ['DB_NAME']
+DB_SCHEMA_NAME   = 'master'
+DRIVER_NAME      = 'postgres+pg8000'
+query_string     = dict({"unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(CONNECTION_NAME)})
+
+TABLE_SEQUENCE = 'm_corporation_info_id_seq'
+
 DATASET_ID = os.environ['BIGQUERY_DATASET_ID']
 TABLE_ID   = os.environ['BIGQUERY_TABLE_ID']
 
-# Set the following variables depending on your specific
-# connection name and root password from the earlier steps:
-connection_name = os.environ["CLOUD_SQL_CONNECTION_NAME"]
-db_password     = os.environ['DB_USER_PASSWORD']
-db_name         = os.environ['DB_NAME']
-db_user         = os.environ['DB_USER']
-driver_name     = 'postgres+pg8000'
-query_string    = dict({"unix_sock": "/cloudsql/{}/.s.PGSQL.5432".format(connection_name)})
-
 engine = create_engine(
     sqlalchemy.engine.url.URL(
-        drivername=driver_name,
-        username=db_user,
-        password=db_password,
-        database=db_name,
+        drivername=DRIVER_NAME,
+        username=DB_USER,
+        password=DB_USER_PASSWORD,
+        database=DB_NAME,
         query=query_string,
     ),
     pool_size=5,
@@ -34,22 +37,23 @@ engine = create_engine(
 metadata  = MetaData()
 
 # TODO: Replace to models/CorpInfoMaster.py
-corp_info_master = Table('corp_info_master', metadata,
-    Column('id', Integer, Sequence('corp_info_master_id_seq'), primary_key=True),
+m_corporation_info = Table('m_corporation_info', metadata,
+    Column('id', Integer, Sequence(DB_SCHEMA_NAME + '.' + TABLE_SEQUENCE, metadata=metadata), primary_key=True),
     Column('sys_id', Integer),
     Column('sys_master_id', Integer),
     Column('unique_name', String(50)),
     Column('is_deleted', Boolean),
+    Column('is_updated', Boolean),
     Column('created_at', DateTime, onupdate=datetime.datetime.now),
     Column('updated_at', DateTime, onupdate=datetime.datetime.now),
-    Column('deleted_at', DateTime, onupdate=datetime.datetime.now))
+    Column('deleted_at', DateTime, onupdate=datetime.datetime.now),
+    schema=DB_SCHEMA_NAME)
 
 def insert(req_params, identified_name):
-    # stmt = sqlalchemy.text('INSERT INTO public.corp_info_master (sys_id, sys_master_id, unique_name) VALUES (10001, 2000002, デジタルアドバタイジングコンソーシアム株式会社)')
     stmt = build_query('INSERT', req_params, identified_name)
 
     if (stmt != None):
-        return connect(stmt)
+        return connect('INSERT', stmt)
     else:
         return None
 
@@ -57,28 +61,40 @@ def select(req):
     stmt = build_query('SELECT', req)
 
     if (stmt != None):
-        return connect(stmt)
+        return connect('SELECT', stmt)
     else:
         return None
 
 def build_query(type: str, _req_params, _identified_name=None):
     if (type == 'INSERT'):
-        return corp_info_master.insert().values(
-            sys_id        = _req_params['sys_id'],
-            sys_master_id = _req_params['sys_master_id'],
-            unique_name   = _identified_name)
+        return m_corporation_info.insert().values({
+            m_corporation_info.c.sys_id:        _req_params['sys_id'],
+            m_corporation_info.c.sys_master_id: _req_params['sys_master_id'],
+            m_corporation_info.c.unique_name:   _identified_name})
+
     elif (type == 'SELECT'):
-        return corp_info_master.select().where(and_(
-            corp_info_master.c.sys_id        == _req_params['sys_id'],
-            corp_info_master.c.sys_master_id == _req_params['sys_master_id'],
-            corp_info_master.c.is_deleted    != True))
+        return m_corporation_info.select().where(and_(
+            m_corporation_info.c.sys_id        == _req_params['sys_id'],
+            m_corporation_info.c.sys_master_id == _req_params['sys_master_id'],
+            m_corporation_info.c.is_deleted    == False))
     else:
         return None
 
-def connect(stmt):
+def connect(type, stmt):
     try:
         with engine.connect() as conn:
-            return conn.execute(stmt)
+            result = None
+
+            if type == 'INSERT':
+                trans  = conn.begin()
+                result = conn.execute(stmt)
+                trans.commit()
+            elif type == 'SELECT':
+                result = conn.execute(stmt)
+
+            conn.close()
+
+            return result
     except Exception as e:
         return 'Error: {}'.format(str(e))
 
