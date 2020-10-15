@@ -6,10 +6,9 @@ from flask import Response
 from lib.db_connection import insert, select, fetch_company_name_dic_bq
 
 def main(request):
-    # TODO: add Request Error -> JSON Type? all parameters?
     content_type = request.headers['content-type']
 
-    if content_type == 'application/json': # TODO: If you change the HTTP method to POST you need to update the headers and parameters values
+    if content_type == 'application/json':
         req_params = set_request_params(request)
 
         if 'sys_id' in request.args and 'sys_master_id' in request.args and 'target_name' in request.args:
@@ -22,15 +21,23 @@ def main(request):
     if len(resp) == 1:
         result = generate_json_resp('master_db', resp)
     elif len(resp) > 1:
-        return Response("Error: duplicate row. Please contact techDev0", 500)
+        return Response("Server Error.., duplicate row. Please contact techDev0", 500)
     else:
         identified_names = identify_company_name(req_params['target_name'])
         result           = generate_json_resp('_bigquery', identified_names)
 
-        # if len(identified_names) == 1:
-        #     return insert(req_params, identified_names[0])
+        if len(identified_names) == 1:
+
+            return insert(req_params, identified_names[0])
 
     return result
+
+def set_request_params(request):
+    return {
+        "sys_id": request.args.get('sys_id'),
+        "sys_master_id": request.args.get('sys_master_id'),
+        "target_name": request.args.get('target_name')
+    }
 
 def set_request_params(request):
     return {
