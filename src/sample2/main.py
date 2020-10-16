@@ -3,7 +3,8 @@ import unicodedata
 
 from flask import Response
 
-from lib.db_connection import insert, select, fetch_company_name_dic_bq
+from lib.db_connection import insert, select
+from lib.bq_connection import fetch_company_name_dic_bq
 
 def main(request):
     content_type = request.headers['content-type']
@@ -27,8 +28,9 @@ def main(request):
         result           = generate_json_resp('_bigquery', identified_names)
 
         if len(identified_names) == 1:
-
-            return insert(req_params, identified_names[0])
+            insert(req_params, identified_names[0])
+        elif len(identified_names)== 0:
+            result = {}
 
     return result
 

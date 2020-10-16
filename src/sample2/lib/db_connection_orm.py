@@ -2,6 +2,10 @@ import os
 
 import sqlalchemy
 from sqlalchemy import create_engine
+from sqlalchemy.sql import and_
+from sqlalchemy.orm import sessionmaker
+
+from models.MCompany import MCompany
 
 # Set the following variables depending on your specific
 # connection name and root password from the earlier steps:
@@ -33,21 +37,29 @@ def select(params):
 
 def connect(type, params, _identified_name=None):
     try:
-        with engine.connect() as conn:
-            result = None
+        Session = sessionmaker(bind=engine)
+        session = Session()
 
-            if type == 'INSERT':
-                trans  = conn.begin()
-                # TODO: Write the query in hard code as a provisional response
-                result = conn.execute("INSERT INTO master.m_company (sys_id, sys_master_id, unique_name) VALUES ({}, {}, '{}')".format(params['sys_id'], params['sys_master_id'], _identified_name))
-                trans.commit()
-            elif type == 'SELECT':
-                # TODO: Write the query in hard code as a provisional response
-                result = conn.execute("SELECT * FROM master.m_company WHERE sys_id = {} AND sys_master_id = {} AND is_deleted = false".format(params['sys_id'], params['sys_master_id']))
+        result = None
 
-            conn.close()
+        if type == 'INSERT':
+            obj = MCompany(
+                sys_id        = params['sys_id'],
+                sys_master_id = params['sys_master_id'],
+                unique_name   = _identified_name)
 
-            return result
+            session.add(obj)
+            result = session.commit()
+
+        elif type == 'SELECT':
+            result = session.query(MCompany).filter(and_(
+                MCompany.sys_id        == params['sys_id'],
+                MCompany.sys_master_id == params['sys_master_id'],
+                MCompany.is_deleted    == False)).all()
+
+        session.close()
+
+        return result
 
     except Exception as e:
         return 'Error: {}'.format(str(e))
