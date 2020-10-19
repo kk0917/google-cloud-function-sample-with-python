@@ -7,6 +7,13 @@ from lib.db_connection import insert, select
 from lib.bq_connection import fetch_company_name_dic_bq
 
 def main(request):
+    """ Execution function specified by Cloud Functions
+
+    Args:
+        request (Request): Http request information. headers, body, etc.
+    Returns:
+        dict: Return result of fetched unique name from database, or identified name from JCL dictionary.
+    """
     content_type = request.headers['content-type']
 
     if content_type == 'application/json':
@@ -35,13 +42,14 @@ def main(request):
     return result
 
 def set_request_params(request):
-    return {
-        "sys_id": request.args.get('sys_id'),
-        "sys_master_id": request.args.get('sys_master_id'),
-        "target_name": request.args.get('target_name')
-    }
+    """ Sets request parameters to format
 
-def set_request_params(request):
+    Args:
+        request (Request): Http request information.
+
+    Returns:
+        dict: Returns request parameters into formats.
+    """
     return {
         "sys_id": request.args.get('sys_id'),
         "sys_master_id": request.args.get('sys_master_id'),
@@ -49,11 +57,27 @@ def set_request_params(request):
     }
 
 def fetch_master_data(req_params):
+    """ Fetch official unique company name from database
+
+    Args:
+        req_params (dict): Http request parameters using search (database or BigQuery) or identify name string.
+
+    returns:
+        list: fetch result. converted SQLAlchemy.ResultProxy obj to list obj
+    """
     result = select(req_params)
 
     return result.fetchall() # convert SQLAlchemy.ResultProxy obj to list obj
 
 def generate_json_resp(reference, resp):
+    """ Generate HTTP Response body
+
+    Args:
+        reference (str): reference type, database or BigQuery.
+        resp (): Fetched result of database or identified unique name
+    returns:
+        dict: Http response json type body
+    """
     row_status = None
     resp_dict  = {}
 
@@ -78,6 +102,13 @@ def generate_json_resp(reference, resp):
     return resp_dict # unnecessary converting to json...
 
 def verify_row_status(_row):
+    """ verify fetched unique name from database.n
+
+    Args:
+        _row (list): fetched data from database.
+    Rreturn:
+        str: Return status string.
+    """
     status = {
         0: "initial regist",
         1: "registed",
@@ -94,6 +125,12 @@ def verify_row_status(_row):
     return result
 
 def identify_company_name(target_name):
+    """ Identify company name by JCL dictionary
+
+    Args:
+        target_name (str): target name
+    :return:
+    """
     fmt_name_str = fmt_string(target_name)
     bq_result    = fetch_company_name_dic_bq(fmt_name_str)
     result       = {}
