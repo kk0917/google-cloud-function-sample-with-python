@@ -48,7 +48,7 @@ def set_request_params(request):
         request (Request): Http request information.
 
     Return:
-        dict: Returns request parameters into formats.
+        dict: Return request parameters into formats.
     """
     return {
         "sys_id": request.args.get('sys_id'),
@@ -107,7 +107,7 @@ def verify_row_status(_row):
     Arg:
         _row (list): fetched data from database.
     Rreturn:
-        str: Return status string.
+        str: status string.
     """
     status = {
         0: "initial regist",
