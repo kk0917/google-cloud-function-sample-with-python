@@ -62,7 +62,7 @@ def fetch_master_data(req_params):
     Arg:
         req_params (dict): Http request parameters using search (database or BigQuery) or identify name string.
 
-    return:
+    Return:
         list: fetch result. converted SQLAlchemy.ResultProxy obj to list obj
     """
     result = select(req_params)
@@ -75,7 +75,7 @@ def generate_json_resp(reference, resp):
     Args:
         reference (str): reference type, database or BigQuery.
         resp (): Fetched result of database or identified unique name
-    return:
+    Return:
         dict: Http response json type body
     """
     row_status = None
@@ -106,7 +106,7 @@ def verify_row_status(_row):
 
     Arg:
         _row (list): fetched data from database.
-    Rreturn:
+    Return:
         str: status string.
     """
     status = {
