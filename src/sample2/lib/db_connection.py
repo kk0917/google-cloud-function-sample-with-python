@@ -25,13 +25,13 @@ engine = create_engine(
     pool_timeout=30,
     pool_recycle=1800)
 
-def insert(params, identified_name):
-    return connect('INSERT', params, identified_name)
+def insert(req_params, _bq_resp):
+    return connect('INSERT', req_params, _bq_resp)
 
 def select(params):
     return connect('SELECT', params)
 
-def connect(type, params, _identified_name=None):
+def connect(type, params, bq_resp=None):
     try:
         with engine.connect() as conn:
             result = None
@@ -39,11 +39,12 @@ def connect(type, params, _identified_name=None):
             if type == 'INSERT':
                 trans  = conn.begin()
                 # TODO: Write the query in hard code as a provisional response
-                result = conn.execute("INSERT INTO master.m_company (sys_id, sys_master_id, unique_name) VALUES ({}, {}, '{}')".format(params['sys_id'], params['sys_master_id'], _identified_name))
+                result = conn.execute("INSERT INTO master.m_corporation (nta_corporate_num, process, nta_corporate_name) VALUES ({}, {}, '{}')".format(bq_resp['nta_corporate_num'], bq_resp['process'], bq_resp['nta_corporate_name']))
+                result = conn.execute("INSERT INTO master.corporation_externalsys_assignment (nta_corporate_num, external_sys_id, external_sys_master_id) VALUES ({}, {}, '{}')".format(bq_resp['nta_corporate_num'], params['sys_id'], params['sys_master_id']))
                 trans.commit()
             elif type == 'SELECT':
                 # TODO: Write the query in hard code as a provisional response
-                result = conn.execute("SELECT * FROM master.m_company WHERE sys_id = {} AND sys_master_id = {} AND is_deleted = false".format(params['sys_id'], params['sys_master_id']))
+                result = conn.execute("SELECT * FROM master.corporation_externalsys_assignment AS assign LEFT JOIN master.m_corporation AS m_corp ON assign.nta_corporate_num = m_corp.nta_corporate_num WHERE m_corp.nta_corporate_num = {} AND m_corp.is_deleted = false".format(params['nta_corporate_num']))
 
             conn.close()
 
