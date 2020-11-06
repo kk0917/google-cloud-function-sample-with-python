@@ -8,6 +8,13 @@ from lib.db_connection import insert, select
 from lib.bq_connection import fetch_company_name_dic_bq
 
 def main(request):
+    """ Execution function specified by Cloud Functions
+
+    Arg:
+        request (Request): Http request information. headers, body, etc.
+    Return:
+        dict: Return result of fetched unique name from database, or identified name from JCL dictionary.
+    """
     try:
         content_type = request.headers['content-type']
 
@@ -44,6 +51,14 @@ def main(request):
         return Response("Exception: {}. Please contact techDev0".format(e), 500)
 
 def set_request_params(request):
+    """ Sets request parameters to format
+
+    Arg:
+        request (Request): Http request information.
+
+    Return:
+        dict: Return request parameters into formats.
+    """
     return {
         "sys_id": request.args.get('sys_id'),
         "sys_master_id": request.args.get('sys_master_id'),
@@ -61,6 +76,14 @@ def get_response_body(bq_resp, req_params): # TODO: Consider a better name
         return set_response_body(req_params, bq_resp, 'bq')
 
 def fetch_master_data(params):
+    """ Fetch official unique company name from database
+
+    Arg:
+        req_params (dict): Http request parameters using search (database or BigQuery) or identify name string.
+
+    Return:
+        list: fetch result. converted SQLAlchemy.ResultProxy obj to list obj
+    """
     result = select(params)
 
     return result.fetchall() # convert SQLAlchemy.ResultProxy obj to list obj
@@ -98,6 +121,13 @@ def set_response_body(req_params, resp, ref=None):
     return resp_body
 
 def identify_company_name(target_name):
+    """ Identify company name by JCL dictionary
+
+    Arg:
+        target_name (str): target name
+    Return:
+        dict: Identified unique name or candidate names from JCL dictionary into BigQuery
+    """
     fmt_name_str = fmt_string(target_name)
     bq_resp = fetch_company_name_dic_bq(fmt_name_str, '=')
 
